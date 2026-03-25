@@ -1,0 +1,18 @@
+# Arduino IDE temporary build folders
+build/
+bin/
+
+# Local configuration files
+.vscode/
+.DS_Store
+
+# Compilation output
+*.o
+*.a
+*.so
+*.obj
+*.elf
+*.hex
+*.bin
+
+**/.DS_Store
