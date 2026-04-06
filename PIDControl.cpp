@@ -19,15 +19,21 @@ void PIDControl::setTunings(float p, float i, float d){
   kp = p;
   ki = i;
   kd = d;
-  lastTime = 0;
+  lastTime = micros();
 }
 
 float PIDControl::compute(float currentError){
 
   unsigned long int currentTime = micros();
   float timeDelta = (currentTime - lastTime)/1000000.0;
-  if(timeDelta <= 0)
-    timeDelta = 0.0001;
+  
+  if(timeDelta < 0.01){
+    return (kp * previousError) + (integralSum * ki) + (previousFilteredDerivative * kd);
+  }
+
+  if(abs(currentError - previousError) > 1.8){
+    currentError = previousError;
+  }
 
   float P = kp * currentError;
 

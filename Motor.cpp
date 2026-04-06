@@ -7,7 +7,7 @@ Motor::Motor(const int in1, const int in2, const int pwm){
   pwmPin = pwm;
 }
 
-void Motor::Initialise(){                 //Initialise pins and stop the bot initially
+void Motor::Initialise(){
   pinMode(in1Pin, OUTPUT);
   pinMode(in2Pin, OUTPUT);
   pinMode(pwmPin, OUTPUT);
@@ -17,7 +17,7 @@ void Motor::Initialise(){                 //Initialise pins and stop the bot ini
   analogWrite(pwmPin , 0);
 }
 
-void Motor::drive(int speed){             // Use the speed to define direction and speed of the wheels
+void Motor::drive(int speed){
   speed = constrain(speed, -255, 255);
 
   if(speed > 0){
