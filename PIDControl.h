@@ -4,7 +4,7 @@
 
 class PIDControl{
   private:
-    float kp, ki, kd, previousError, integralSum, previousFilteredDerivative, alpha;
+    float kp, ki, kd, previousError, integralSum, previousFilteredDerivative, alpha, lastOut;
     unsigned long int lastTime;
   
   public:

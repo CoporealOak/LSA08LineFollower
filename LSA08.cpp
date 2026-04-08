@@ -13,8 +13,8 @@ void LSA08::Initialise(){
 float LSA08::getPositionError(){
   float currentRead = 35.0;
   const float actualMin = 0.0;
-  const float actualCentre = 604.0;
-  const float actualMax = 1950.0;
+  const float actualCentre = 560.0;
+  const float actualMax = 1875.0;
 
   float RawAnalogRead = analogRead(analogPin);
 

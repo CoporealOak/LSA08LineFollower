@@ -7,6 +7,7 @@ PIDControl::PIDControl(float p, float i, float d, float Alpha){
   ki = i;
   kd = d;
   alpha = Alpha;
+  lastOut = 0.0;
 
   previousError = 0.0;
   integralSum = 0.0;
@@ -26,16 +27,21 @@ float PIDControl::compute(float currentError){
 
   unsigned long int currentTime = micros();
   float timeDelta = (currentTime - lastTime)/1000000.0;
+  float dynamicKp = kp;
+  float dynamicKd = kd;
   
   if(timeDelta < 0.01){
-    return (kp * previousError) + (integralSum * ki) + (previousFilteredDerivative * kd);
+    return lastOut;
   }
 
-  if(abs(currentError - previousError) > 1.8){
-    currentError = previousError;
+  if(abs(currentError) > 1.8){
+    dynamicKp = kp * 2.0;
+  }
+  else if(abs(currentError) > 0.45 && abs(currentError) <= 1.8 && abs(currentError) > abs(previousError)){
+    dynamicKd = kd * 2.5;
   }
 
-  float P = kp * currentError;
+  float P = dynamicKp * currentError;
 
   integralSum = integralSum + (currentError * timeDelta);
   float integralLimit = 255.0;
@@ -50,11 +56,12 @@ float PIDControl::compute(float currentError){
 
   float rawDerivative = (currentError - previousError) / timeDelta;
   float filteredDerivative = (alpha * rawDerivative) + (1.0 - alpha) * previousFilteredDerivative;
-  float D = filteredDerivative * kd;
+  float D = filteredDerivative * dynamicKd;
 
   lastTime = currentTime;
   previousError = currentError;
   previousFilteredDerivative = filteredDerivative;
+  lastOut = P + I + D;
 
   return P + I + D;
 }
@@ -64,4 +71,5 @@ void PIDControl::reset(){
   previousError = 0.0;
   previousFilteredDerivative = 0.0;
   lastTime = micros();
+  lastOut = 0.0;
 }

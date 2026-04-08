@@ -5,8 +5,8 @@ StateControl::StateControl(LSA08& sensorRef, PIDControl& pidRef, driveControl& d
   currentState = FollowingLine;
   LastSeenSide = Center;
 
-  searchSpeed = 100;
-  pivotSpeed = 130;
+  searchSpeed = 135;
+  pivotSpeed = 135;
   AntiLoopTimer = 0;
   LoopEscapeTimer = millis();
   TurnTimer = 0;
@@ -17,7 +17,7 @@ StateControl::StateControl(LSA08& sensorRef, PIDControl& pidRef, driveControl& d
 
 void StateControl::determineState() {
   if (currentState == Turn90L) {
-    if (millis() - TurnTimer < 150) {
+    if (millis() - TurnTimer < 75) {
       return;
     } else if (sensors.isLineLost()) {
       if (millis() - TurnTimer > 1500) {
@@ -36,7 +36,7 @@ void StateControl::determineState() {
   }
 
   if (sensors.isJunction()) {
-    if (millis() - AntiLoopTimer > 600) {
+    if (millis() - AntiLoopTimer > 300) {
 
       if (ForceEscape) {
         TurnTimer = millis();
@@ -50,7 +50,7 @@ void StateControl::determineState() {
           currentState = Intersection;
           LastSeenSide = Center;
           LoopEscapeTimer = millis();
-        } else if (currentState == Intersection && (millis() - EndPointTimer > 800)) {
+        } else if (currentState == Intersection && (millis() - EndPointTimer > 500)) {
           currentState = AtEndPoint;
         }
       }
@@ -150,6 +150,10 @@ void StateControl::update() {
   }
 
   determineState();
+
+  if(currentState != AtEndPoint){
+    digitalWrite(EndPointLED, LOW);
+  }
 
   switch (currentState) {
     case FollowingLine:

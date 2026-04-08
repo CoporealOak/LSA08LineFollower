@@ -8,7 +8,7 @@ const int LSA_ANPin = 34;
 const int LSA_JPin = 35;
 const int endPointLED = 13;
 
-PIDControl PID(30.0, 0.0, 0.8);
+PIDControl PID(24.0, 0.0, 1.5);
 driveControl drive(27, 14, 12, 25, 26, 33);
 LSA08 SensorArray(LSA_ANPin, LSA_JPin);
 
@@ -23,13 +23,14 @@ void setup(){
   SensorArray.Initialise(); 
   drive.initialise();
 
-  drive.setDefaultSpeed(130, 130);
+  drive.setDefaultSpeed(126, 126);
 
-  delay(5000);
+  delay(2000);
 
   PID.reset();
 }
 
 void loop(){
   StateMachine.update();
+  Serial.println(analogRead(LSA_ANPin));
 }
