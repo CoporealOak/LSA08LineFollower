@@ -13,8 +13,8 @@ void LSA08::Initialise(){
 float LSA08::getPositionError(){
   float currentRead = 35.0;
   const float actualMin = 0.0;
-  const float actualCentre = 560.0;
-  const float actualMax = 1875.0;
+  const float actualCentre = 590.0;
+  const float actualMax = 1900.0;
 
   float RawAnalogRead = analogRead(analogPin);
 
@@ -30,7 +30,7 @@ float LSA08::getPositionError(){
   else if(currentRead > 70.0)
     currentRead = 70.0;
 
-  if(currentRead >= 34.0 && currentRead <= 35.5)
+  if(currentRead >= 34.0 && currentRead <= 36.0)
     currentRead = 35.0;
 
   float currentError = currentRead - 35.0;
@@ -38,7 +38,7 @@ float LSA08::getPositionError(){
 }
 
 bool LSA08::isLineLost(){
-  return analogRead(analogPin) > 2600;
+  return analogRead(analogPin) > 1250;
 }
 
 bool LSA08::isJunction(){

@@ -5,8 +5,8 @@ StateControl::StateControl(LSA08& sensorRef, PIDControl& pidRef, driveControl& d
   currentState = FollowingLine;
   LastSeenSide = Center;
 
-  searchSpeed = 135;
-  pivotSpeed = 135;
+  searchSpeed = 125;
+  pivotSpeed = 125;
   AntiLoopTimer = 0;
   LoopEscapeTimer = millis();
   TurnTimer = 0;
@@ -16,11 +16,14 @@ StateControl::StateControl(LSA08& sensorRef, PIDControl& pidRef, driveControl& d
 }
 
 void StateControl::determineState() {
+  float currentErr = sensors.getPositionError();
+
+  // 1. TURN GUARD: If we are already turning, stay in this state until finished.
   if (currentState == Turn90L) {
-    if (millis() - TurnTimer < 75) {
+    if (millis() - TurnTimer < 300) {
       return;
     } else if (sensors.isLineLost()) {
-      if (millis() - TurnTimer > 1500) {
+      if (millis() - TurnTimer > 600) {
         currentState = LostLine;
       }
       return;
@@ -31,73 +34,63 @@ void StateControl::determineState() {
     }
   }
 
-  if (millis() - LoopEscapeTimer > 17000) {
-    ForceEscape = true;
-  }
-
+  // 2. JUNCTION DETECTION: Distinguishes between Cross-intersections (X) and Corners (L).
   if (sensors.isJunction()) {
-    if (millis() - AntiLoopTimer > 300) {
+    if (millis() - AntiLoopTimer > 150) {
 
-      if (ForceEscape) {
-        TurnTimer = millis();
+      // If the error is high, it's a 90-degree corner (L-junction).
+      if (abs(currentErr) > 2.3) { 
         currentState = Turn90L;
-        LastSeenSide = Left;
-        ForceEscape = false;
-        LoopEscapeTimer = millis();
-      } else {
+        TurnTimer = millis();
+        // Crucial: We do NOT set LastSeenSide to Center here. 
+        // We keep the side we were leaning towards so handle90DegreeTurn knows where to spin.
+      } 
+      // If error is low, it's an X-intersection or the End Point.
+      else {
         if (currentState != Intersection && currentState != AtEndPoint) {
           EndPointTimer = millis();
           currentState = Intersection;
-          LastSeenSide = Center;
+          LastSeenSide = Center; // Force straight movement through the X
           LoopEscapeTimer = millis();
-        } else if (currentState == Intersection && (millis() - EndPointTimer > 500)) {
+        } else if (currentState == Intersection && (millis() - EndPointTimer > 190)) {
           currentState = AtEndPoint;
         }
       }
+    }
+  }
 
-    } else {
+  // 3. GAP DETECTION: Handles straight gaps and missed turns.
+  else if (sensors.isLineLost()) {
+    if (currentState != CrossingGap && currentState != LostLine && currentState != Turn90L) {
+      currentState = CrossingGap;
+      LineLostTime = millis();
+    } 
+    else if (currentState == CrossingGap) {
+      // Increased timeout (300ms/450ms) to stop the "jerking" during straight gaps.
+      int gapTimeout = (LastSeenSide == Center) ? 180 : 120;
+
+      if (millis() - LineLostTime > gapTimeout) {
+        // If we lost the line very soon after an intersection, it was a 90-degree turn.
+        if (millis() - AntiLoopTimer < 400 && LastSeenSide != Center) {
+          currentState = Turn90L;
+          TurnTimer = millis();
+          AntiLoopTimer = 0;
+        } else {
+          currentState = LostLine;
+        }
+      }
+    }
+  }
+
+  // 4. THE LATCH: This is why your junction pin "stopped working."
+  // We only revert to FollowingLine if we aren't currently processing an Intersection or EndPoint.
+  else {
+    if (currentState != Intersection && currentState != AtEndPoint) {
       currentState = FollowingLine;
     }
   }
 
-  else if (sensors.isLineLost()) {
-
-    if(currentState != CrossingGap && currentState != LostLine && currentState != Turn90L){
-      currentState = CrossingGap;
-      LineLostTime = millis();
-    }
-    
-    else if(currentState == CrossingGap){
-      if (LastSeenSide == Center) {
-        if (millis() - LineLostTime > 800) {
-          currentState = LostLine;
-        }
-      }
-
-      else {
-        if (millis() - LineLostTime > 150) {
-          
-          if(millis() - AntiLoopTimer < 1000){
-            currentState = Turn90L;
-            TurnTimer = millis();
-            AntiLoopTimer = 0;
-            LastSeenSide = Left;
-          } else {
-            currentState = LostLine;
-          }
-        }
-      }
-    }
-    
-    else if(currentState == Turn90L){
-      currentState = LostLine;
-    }
-  }
-
-  else {
-    currentState = FollowingLine;
-  }
-
+  // 5. CLEANUP: Handles transition out of intersections.
   if (previousState == Intersection && currentState != Intersection && currentState != AtEndPoint) {
     AntiLoopTimer = millis();
   }
@@ -106,9 +99,9 @@ void StateControl::determineState() {
 }
 
 void StateControl::logLastPosition(float currentError) {
-  if (currentError < -0.5)
+  if (currentError < -0.7)
     LastSeenSide = Left;
-  else if (currentError > 0.5)
+  else if (currentError > 0.7)
     LastSeenSide = Right;
   else
     LastSeenSide = Center;
@@ -126,7 +119,13 @@ void StateControl::handleGap() {
 }
 
 void StateControl::handle90DegreeTurn() {
-  drive.spin(-pivotSpeed);
+  if (LastSeenSide == Left) {
+    drive.spin(-pivotSpeed);
+  } else if (LastSeenSide == Right) {
+    drive.spin(pivotSpeed);
+  } else {
+    drive.steer(0.0);
+  }
 }
 
 void StateControl::handleIntersection() {

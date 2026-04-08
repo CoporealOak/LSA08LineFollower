@@ -34,11 +34,11 @@ float PIDControl::compute(float currentError){
     return lastOut;
   }
 
-  if(abs(currentError) > 1.8){
-    dynamicKp = kp * 2.0;
+  if(currentError > 2.3 || currentError < -2.3){
+    dynamicKp = kp * 1.8;
   }
-  else if(abs(currentError) > 0.45 && abs(currentError) <= 1.8 && abs(currentError) > abs(previousError)){
-    dynamicKd = kd * 2.5;
+  else if(abs(currentError) > 0.4 && abs(currentError) <= 1.8 && abs(currentError) > abs(previousError)){
+    dynamicKd = kd * 2;
   }
 
   float P = dynamicKp * currentError;
